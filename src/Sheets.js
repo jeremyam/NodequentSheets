@@ -1,3 +1,5 @@
+const { google } = require("googleapis")
+const { JWT } = require("google-auth-library")
 /**
  * Creates a new instance of the Sheets class.
  *
@@ -13,6 +15,8 @@ function Sheets({ developmentId: devId, productionId: prodId, serviceAccount: ac
     // Service Account Credentials.
     this.account = account
     this.id = ""
+    this.api = ["https://www.googleapis.com/auth/spreadsheets"]
+    this.client = ""
 }
 
 /**
@@ -24,6 +28,11 @@ function Sheets({ developmentId: devId, productionId: prodId, serviceAccount: ac
  */
 Sheets.prototype.setMode = function ({ development = false } = { development: false }) {
     this.id = development ? this.prodId : this.devId
+}
+
+Sheets.prototype.auth = function () {
+    const auth = new JWT(this.account.client_email, null, this.account.private_key, this.api)
+    this.client = google.sheets({ version: "v4", auth })
 }
 
 module.exports = Sheets
