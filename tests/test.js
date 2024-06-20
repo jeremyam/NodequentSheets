@@ -10,7 +10,8 @@ const db = new Sheets({
 db.setMode({ development: true })
 const start = async () => {
     await db.init()
-    console.log(db.getTables())
+    const Genesis = await db.table("Genesis")
+    console.log(Genesis.get())
 }
 
 start()
