@@ -8,6 +8,9 @@ const db = new Sheets({
 })
 
 db.setMode({ development: true })
-db.auth()
+const start = async () => {
+    await db.init()
+    console.log(db.getTables())
+}
 
-console.log(db)
+start()
