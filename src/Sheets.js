@@ -12,6 +12,8 @@ class Sheets {
         this.client = ""
         this.values = []
         this.selectedTable = ""
+        this.query = ""
+        this.results = []
     }
 
     async setMode({ development = false } = { development: false }) {
@@ -31,8 +33,49 @@ class Sheets {
         return this
     }
 
+    where({ column: col, operator: op, value: val }) {
+        this.query = { col, op, val }
+        this.filterResults()
+        return this
+    }
+
+    /**
+     * Filters the results based on the queries specified.
+     *
+     * @return {Array} The filtered results.
+     */
+    filterResults() {
+        const { col, op, val } = this.query
+        this.results = this.results.filter((row) => {
+            switch (op) {
+                case "=":
+                    return row[col] === val
+                case "!=":
+                    return row[col] !== val
+                case ">":
+                    return row[col] > val
+                case "<":
+                    return row[col] < val
+                case ">=":
+                    return row[col] >= val
+                case "<=":
+                    return row[col] <= val
+                case "like":
+                    return row[col].includes(val)
+                case "not like":
+                    return !row[col].includes(val)
+                default:
+                    break
+            }
+        })
+    }
+
     get() {
-        return this.values
+        return this.results
+    }
+
+    first() {
+        return this.results.pop()
     }
 
     async setValues() {
@@ -42,14 +85,15 @@ class Sheets {
             range: this.selectedTable,
         })
         const header = data.values.shift()
-        const entry = {}
-        entry[this.selectedTable] = data.values.map((row) => {
+        const entries = {}
+        entries[this.selectedTable] = data.values.map((row) => {
             return header.reduce((obj, key, index) => {
                 obj[key] = row[index]
                 return obj
             }, {})
         })
-        this.values.push(entry)
+        this.values = entries
+        this.results = entries[this.selectedTable]
         return this
     }
 

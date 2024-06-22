@@ -10,8 +10,19 @@ const db = new Sheets({
 db.setMode({ development: true })
 const start = async () => {
     await db.init()
-    const Genesis = await db.table("Genesis")
-    console.log(Genesis.get())
+    const Genesis = (await db.table("Genesis"))
+        .where({
+            column: "NT Parallel Books",
+            operator: "=",
+            value: "John",
+        })
+        .where({
+            column: "NT Verse",
+            operator: "like",
+            value: "1:1-3",
+        })
+        .get()
+    console.log(Genesis)
 }
 
 start()
