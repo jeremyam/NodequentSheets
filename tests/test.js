@@ -18,8 +18,8 @@ const start = async () => {
         })
         .where({
             column: "NT Verse",
-            operator: "like",
-            value: "1:1-3",
+            operator: "=",
+            value: "1:1–3",
         })
         .get()
     console.log(Genesis)
