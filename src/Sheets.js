@@ -162,6 +162,23 @@ class Sheets {
     getTables() {
         return this.tables
     }
+
+    orderBy({ column: col, direction: dir }) {
+        this.results = this.results.sort((a, b) => {
+            if (a[col] < b[col]) return -1
+            if (a[col] > b[col]) return 1
+            return 0
+        })
+        if (dir === "desc") this.results.reverse()
+        return this
+    }
+
+    orderByRaw(callback) {
+        callback(this.results)
+        return this
+    }
+
+    save() {}
 }
 
 module.exports = Sheets
