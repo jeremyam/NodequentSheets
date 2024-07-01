@@ -1,5 +1,6 @@
 require("dotenv").config()
 const Sheets = require("../src/Sheets")
+const sleep = require("../src/functions").sleep
 
 const db = new Sheets({
     developmentId: process.env.DEV_ID,
@@ -8,6 +9,7 @@ const db = new Sheets({
 })
 
 db.setMode({ development: true })
+console.log(db.getMode())
 const start = async () => {
     await db.init()
     const Genesis = (await db.table("Genesis"))
@@ -56,10 +58,10 @@ const start = async () => {
                     }
                 }
             })
-            //console.log(arr)
         })
         .get()
-    console.log(Genesis)
+        //console.log(Genesis)
+   
 }
 
 start()

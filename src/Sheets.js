@@ -14,6 +14,7 @@ class Sheets {
         this.selectedTable = ""
         this.query = ""
         this.results = []
+        this.mode = "Production"
     }
 
     /**
@@ -24,7 +25,12 @@ class Sheets {
      * @return {Promise<void>} - A promise that resolves when the mode has been set.
      */
     async setMode({ development = false } = { development: false }) {
-        this.id = development ? this.prodId : this.devId
+        this.id = development ? this.devId : this.prodId
+        this.mode = development ? "Development" : "Production"
+    }
+
+    getMode() {
+        return this.mode
     }
 
     /**
