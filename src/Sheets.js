@@ -29,6 +29,11 @@ class Sheets {
         this.mode = development ? "Development" : "Production"
     }
 
+    /**
+     * Returns the current mode of the object.
+     *
+     * @return {string} The current mode of the object. Possible values are "Development" or "Production".
+     */
     getMode() {
         return this.mode
     }
