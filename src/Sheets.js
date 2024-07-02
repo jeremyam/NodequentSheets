@@ -177,7 +177,6 @@ class Sheets {
             range: this.selectedTable,
         })
         this.header = data.values.shift()
-        console.log(this.header)
         const entries = data.values.map((row, index) => {
             const obj = this.header.reduce((obj, key, i) => {
                 key = key
