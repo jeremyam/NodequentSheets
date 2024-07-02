@@ -250,13 +250,11 @@ class Sheets {
                     ...result,
                 }
             }
-            console.log(this.values[this.selectedTable][index])
         })
         await this.updateSheets()
     }
 
     async delete(row) {
-        console.log(row)
         const index = this.values[this.selectedTable].findIndex((value) => value.primary_key === row.primary_key)
         if (index !== -1) {
             this.values[this.selectedTable].splice(index, 1)
