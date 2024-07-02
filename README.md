@@ -42,14 +42,16 @@ await db.init()
 // Once the class is initiated, you can make a call to the Google Sheets API to pull the rows
 // from the sheet, using various .where conditions.
 // If no where conditions are assigned, you will retrieve all the values in the spreadsheet.
+// Sheets transforms all header row values into lower case, with no special characters, and
+// underscores instead of spaces, so make sure you search the columns based on the new criteria
 const Sheet = (await db.table("sheetname"))
     .where({
-        column: "Name",
+        column: "name",
         operator: "=",
         value: "John",
     })
     .where({
-        column: "Address",
+        column: "primary_address",
         operator: "=",
         value: "123 Street Address",
     })

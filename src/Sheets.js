@@ -17,7 +17,7 @@ class Sheets {
         this.query = ""
         this.selectedTable = ""
         this.useCache = cache
-        this.header = ""
+        this.header = []
         this.results = []
         this.values = []
     }
@@ -163,7 +163,11 @@ class Sheets {
         const header = data.values.shift()
         const entries = data.values.map((row, index) => {
             const obj = header.reduce((obj, key, i) => {
-                key = key.replace(/[^a-zA-Z0-9]/g, " ").replace(/\s+/g, "_").toLowerCase()
+                this.header.push(key)
+                key = key
+                    .replace(/[^a-zA-Z0-9]/g, " ")
+                    .replace(/\s+/g, "_")
+                    .toLowerCase()
                 obj[key] = row[i].trim()
                 return obj
             }, {})
@@ -171,7 +175,6 @@ class Sheets {
         })
         this.values = { [this.selectedTable]: entries }
         this.results = entries
-        this.header = Object.keys(entries.shift())
         this.header.pop()
         return this
     }
