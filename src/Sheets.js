@@ -138,7 +138,7 @@ class Sheets {
      * @return {IterableIterator<any>} An iterator that yields each row of the `results` array.
      */
     *get() {
-        for (const row of this.results) yield row
+        for (const row of this.results) yield { ...row, delete: () => this.delete(row) }
     }
 
     /**
@@ -163,7 +163,7 @@ class Sheets {
         const header = data.values.shift()
         const entries = data.values.map((row, index) => {
             const obj = header.reduce((obj, key, i) => {
-                obj[key] = row[i]
+                obj[key] = row[i].trim()
                 return obj
             }, {})
             return { ...obj, primary_key: index + 1 }
@@ -248,6 +248,15 @@ class Sheets {
             }
             console.log(this.values[this.selectedTable][index])
         })
+        await this.updateSheets()
+    }
+
+    async delete(row) {
+        console.log(row)
+        const index = this.values[this.selectedTable].findIndex((value) => value.primary_key === row.primary_key)
+        if (index !== -1) {
+            this.values[this.selectedTable].splice(index, 1)
+        }
         await this.updateSheets()
     }
 
