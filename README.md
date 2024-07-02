@@ -58,7 +58,6 @@ const Sheet = (await db.table("sheetname"))
 const Sheet = (await db.table("sheetname")).orderBy({ column: "ID", direction: "desc" })
 
 // You can also pass your own custom way of sorting:
-
 const Sheet = (await db.table("sheetname")).orderByRaw((data) => {
     return data.sort((a, b) => {
         return a.ID - b.ID;
