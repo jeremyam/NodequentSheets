@@ -199,6 +199,14 @@ class Sheets {
         return this.tables
     }
 
+    /**
+     * Sorts the `results` array based on the given `column` and `direction`.
+     *
+     * @param {Object} options - An object containing the `column` and `direction` to sort by.
+     * @param {string} options.column - The column to sort by.
+     * @param {string} options.direction - The direction of the sort. Can be either "asc" or "desc".
+     * @return {Object} - The current instance with the sorted `results` array.
+     */
     orderBy({ column: col, direction: dir }) {
         this.results = this.results.sort((a, b) => {
             if (a[col] < b[col]) return -1
@@ -209,10 +217,26 @@ class Sheets {
         return this
     }
 
+    /**
+     * Executes a callback function with the results as the argument and returns the current instance.
+     *
+     * @param {Function} callback - The function to be executed with the results as the argument.
+     * @return {Object} The current instance.
+     */
     orderByRaw(callback) {
         callback(this.results)
         return this
     }
+    /**
+     * Saves the results to the spreadsheet by updating the values of the selected table.
+     *
+     * This function iterates over the results array and updates the corresponding value in the values array
+     * for the selected table. If a matching value is found, it merges the result object with the existing value.
+     * The function then logs the updated value to the console. Finally, it calls the updateSheets function
+     * to update the spreadsheet with the latest values.
+     *
+     * @return {Promise<void>} A promise that resolves when the save operation is complete.
+     */
     async save() {
         this.results.forEach((result) => {
             const index = this.values[this.selectedTable].findIndex((value) => value.primary_key === result.primary_key)
@@ -227,6 +251,19 @@ class Sheets {
         await this.updateSheets()
     }
 
+    /**
+     * Updates the sheets in the spreadsheet with the latest values.
+     *
+     * This function clears the values of the selected table and updates them with the latest values.
+     * It only performs this operation in development mode. The function first retrieves the values
+     * from the `values` array for the selected table and maps them to an array of values. The header
+     * is then added to the beginning of the values array. The function then clears the values of
+     * the selected table in the spreadsheet using the `clear` method of the `client.spreadsheets.values`
+     * object. Finally, the function updates the values of the selected table using the `batchUpdate`
+     * method of the `client.spreadsheets.values` object.
+     *
+     * @return {Promise<void>} A promise that resolves when the sheets have been updated.
+     */
     async updateSheets() {
         if (this.mode === "Development") {
             const values = this.values[this.selectedTable].map((value) => Object.values(value))
