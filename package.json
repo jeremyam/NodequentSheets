@@ -1,6 +1,6 @@
 {
   "name": "nodequentsheets",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "This is a package that turns google sheets into a database that is accessible in a node.js ORM",
   "main": "index.js",
   "scripts": {
