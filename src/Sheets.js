@@ -265,26 +265,24 @@ class Sheets {
      * @return {Promise<void>} A promise that resolves when the sheets have been updated.
      */
     async updateSheets() {
-        if (this.mode === "Development") {
-            const values = this.values[this.selectedTable].map((value) => Object.values(value))
-            values.unshift(this.header)
-            await this.client.spreadsheets.values.clear({
-                spreadsheetId: this.id,
-                range: this.selectedTable,
-            })
-            await this.client.spreadsheets.values.batchUpdate({
-                spreadsheetId: this.id,
-                requestBody: {
-                    data: [
-                        {
-                            range: this.selectedTable,
-                            values: values,
-                        },
-                    ],
-                    valueInputOption: "RAW",
-                },
-            })
-        }
+        const values = this.values[this.selectedTable].map((value) => Object.values(value))
+        values.unshift(this.header)
+        await this.client.spreadsheets.values.clear({
+            spreadsheetId: this.id,
+            range: this.selectedTable,
+        })
+        await this.client.spreadsheets.values.batchUpdate({
+            spreadsheetId: this.id,
+            requestBody: {
+                data: [
+                    {
+                        range: this.selectedTable,
+                        values: values,
+                    },
+                ],
+                valueInputOption: "RAW",
+            },
+        })
     }
 }
 
