@@ -163,6 +163,7 @@ class Sheets {
         const header = data.values.shift()
         const entries = data.values.map((row, index) => {
             const obj = header.reduce((obj, key, i) => {
+                key = key.replace(/[^a-zA-Z0-9]/g, " ").replace(/\s+/g, "_").toLowerCase()
                 obj[key] = row[i].trim()
                 return obj
             }, {})
