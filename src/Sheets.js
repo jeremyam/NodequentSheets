@@ -177,6 +177,7 @@ class Sheets {
             range: this.selectedTable,
         })
         this.header = data.values.shift()
+        console.log(this.header)
         const entries = data.values.map((row, index) => {
             const obj = this.header.reduce((obj, key, i) => {
                 key = key
@@ -190,7 +191,6 @@ class Sheets {
         })
         this.values = { [this.selectedTable]: entries }
         this.results = entries
-        this.header.pop()
         return this
     }
 
@@ -251,8 +251,8 @@ class Sheets {
      *
      * This function iterates over the results array and updates the corresponding value in the values array
      * for the selected table. If a matching value is found, it merges the result object with the existing value.
-     * The function then logs the updated value to the console. Finally, it calls the updateSheets function
-     * to update the spreadsheet with the latest values.
+     * The function then trims down the result array to the length of the header array.
+     * Finally, it calls the updateSheets function to update the spreadsheet with the latest values.
      *
      * @return {Promise<void>} A promise that resolves when the save operation is complete.
      */
@@ -260,6 +260,7 @@ class Sheets {
         this.results.forEach((result) => {
             const index = this.values[this.selectedTable].findIndex((value) => value.primary_key === result.primary_key)
             if (index !== -1) {
+                delete result.primary_key
                 this.values[this.selectedTable][index] = {
                     ...this.values[this.selectedTable][index],
                     ...result,
@@ -292,7 +293,11 @@ class Sheets {
      * @return {Promise<void>} A promise that resolves when the sheets have been updated.
      */
     async updateSheets() {
-        const values = this.values[this.selectedTable].map((value) => Object.values(value).slice(0, -1))
+        this.values[this.selectedTable].map((value) => {
+            delete value.primary_key
+            return value
+        })
+        const values = this.values[this.selectedTable].map((value) => Object.values(value))
         values.unshift(this.header)
         await this.client.spreadsheets.values.clear({
             spreadsheetId: this.id,
