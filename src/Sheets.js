@@ -3,18 +3,42 @@ const { JWT } = require("google-auth-library")
 const sleep = require("./functions").sleep
 
 class Sheets {
-    constructor({ developmentId: devId, productionId: prodId, serviceAccount: account }) {
+    constructor(
+        { developmentId: devId, productionId: prodId, serviceAccount: account, useCache: cache } = { useCache: false }
+    ) {
+        this._account = account
         this.devId = devId
         this.prodId = prodId
-        this.account = account
         this.id = ""
+        this.mode = "Production"
+        this.primaryColumn = "ID"
         this.api = ["https://www.googleapis.com/auth/spreadsheets"]
         this.client = ""
-        this.values = []
-        this.selectedTable = ""
         this.query = ""
+        this.selectedTable = ""
+        this.useCache = cache
+        this.header = ""
         this.results = []
-        this.mode = "Production"
+        this.values = []
+    }
+
+    /**
+     * Sets the primary column of the sheet based on the provided parameter.
+     *
+     * @param {type} col - The column to set as the primary column.
+     * @return {type} The current instance with the updated primary column.
+     */
+    setPrimaryColumn(col) {
+        this.primaryColumn = col
+    }
+
+    /**
+     * Returns the primary column of the object.
+     *
+     * @return {string} The primary column of the object.
+     */
+    getPrimaryColumn() {
+        return this.primaryColumn
     }
 
     /**
@@ -24,7 +48,7 @@ class Sheets {
      * @param {boolean} [development=false] - A boolean indicating whether the mode should be set to development or production.
      * @return {Promise<void>} - A promise that resolves when the mode has been set.
      */
-    async setMode({ development = false } = { development: false }) {
+    setMode({ development = false } = { development: false }) {
         this.id = development ? this.devId : this.prodId
         this.mode = development ? "Development" : "Production"
     }
@@ -45,7 +69,7 @@ class Sheets {
      * @return {Object} The initialized Sheets object.
      */
     async init() {
-        const auth = new JWT(this.account.client_email, null, this.account.private_key, this.api)
+        const auth = new JWT(this._account.client_email, null, this._account.private_key, this.api)
         this.client = google.sheets({ version: "v4", auth })
         await this.setTables()
         return this
@@ -109,12 +133,12 @@ class Sheets {
     }
 
     /**
-     * Returns the results stored in the instance variable 'results'.
+     * Returns a new array where each element is a new object that combines the properties of the original row object with the properties of the current object.
      *
-     * @return {Array} The results stored in the instance variable 'results'.
+     * @return {Iterator} An iterator that returns objects that combines the properties of the original row object with the properties of the current object.
      */
-    get() {
-        return this.results
+    *get() {
+        for (const row of this.results) yield row
     }
 
     /**
@@ -132,21 +156,22 @@ class Sheets {
      * @return {Object} The Sheets instance with updated values.
      */
     async setValues() {
-        this.values = []
         const { data } = await this.client.spreadsheets.values.get({
             spreadsheetId: this.id,
             range: this.selectedTable,
         })
         const header = data.values.shift()
-        const entries = {}
-        entries[this.selectedTable] = data.values.map((row) => {
-            return header.reduce((obj, key, index) => {
-                obj[key] = row[index]
+        const entries = data.values.map((row, index) => {
+            const obj = header.reduce((obj, key, i) => {
+                obj[key] = row[i]
                 return obj
             }, {})
+            return { ...obj, primary_key: index + 1 }
         })
-        this.values = entries
-        this.results = entries[this.selectedTable]
+        this.values = { [this.selectedTable]: entries }
+        this.results = entries
+        this.header = Object.keys(entries.shift())
+        this.header.pop()
         return this
     }
 
@@ -188,8 +213,42 @@ class Sheets {
         callback(this.results)
         return this
     }
+    async save() {
+        this.results.forEach((result) => {
+            const index = this.values[this.selectedTable].findIndex((value) => value.primary_key === result.primary_key)
+            if (index !== -1) {
+                this.values[this.selectedTable][index] = {
+                    ...this.values[this.selectedTable][index],
+                    ...result,
+                }
+            }
+            console.log(this.values[this.selectedTable][index])
+        })
+        await this.updateSheets()
+    }
 
-    save() {}
+    async updateSheets() {
+        if (this.mode === "Development") {
+            const values = this.values[this.selectedTable].map((value) => Object.values(value))
+            values.unshift(this.header)
+            await this.client.spreadsheets.values.clear({
+                spreadsheetId: this.id,
+                range: this.selectedTable,
+            })
+            await this.client.spreadsheets.values.batchUpdate({
+                spreadsheetId: this.id,
+                requestBody: {
+                    data: [
+                        {
+                            range: this.selectedTable,
+                            values: values,
+                        },
+                    ],
+                    valueInputOption: "RAW",
+                },
+            })
+        }
+    }
 }
 
 module.exports = Sheets
