@@ -133,9 +133,9 @@ class Sheets {
     }
 
     /**
-     * Returns a new array where each element is a new object that combines the properties of the original row object with the properties of the current object.
+     * Returns an iterator that yields each row of the `results` array.
      *
-     * @return {Iterator} An iterator that returns objects that combines the properties of the original row object with the properties of the current object.
+     * @return {IterableIterator<any>} An iterator that yields each row of the `results` array.
      */
     *get() {
         for (const row of this.results) yield row
