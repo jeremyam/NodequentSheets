@@ -255,9 +255,14 @@ class Sheets {
     }
 
     async delete(row) {
-        const index = this.values[this.selectedTable].findIndex(({ primary_key }) => primary_key === row.primary_key)
-        this.values[this.selectedTable].splice(index, 1)
-        this.results.splice(index, 1)
+        const index = this.values[this.selectedTable].findIndex((value) => value.primary_key === row.primary_key)
+        if (index !== -1) {
+            this.values[this.selectedTable].splice(index, 1)
+        }
+        const resultsIndex = this.results.findIndex((value) => value.primary_key === row.primary_key)
+        if (resultsIndex !== -1) {
+            this.results.splice(resultsIndex, 1)
+        }
         await this.updateSheets()
     }
 
