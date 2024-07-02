@@ -133,12 +133,28 @@ class Sheets {
     }
 
     /**
-     * Returns an iterator that yields each row of the `results` array.
+     * Returns an iterator that allows for updating each row of the `results` array while looping through it.
      *
      * @return {IterableIterator<any>} An iterator that yields each row of the `results` array.
      */
     *get() {
-        for (const row of this.results) yield { ...row, delete: () => this.delete(row) }
+        const parent = this
+        for (let i = 0; i < this.results.length; i++) {
+            const row = this.results[i]
+            yield {
+                ...row,
+                delete: () => this.delete(row),
+                update: function () {
+                    const index = parent.results.findIndex((value) => value.primary_key === this.primary_key)
+                    if (index !== -1) {
+                        parent.results[index] = {
+                            ...parent.results[index],
+                            ...this,
+                        }
+                    }
+                },
+            }
+        }
     }
 
     /**
@@ -160,10 +176,9 @@ class Sheets {
             spreadsheetId: this.id,
             range: this.selectedTable,
         })
-        const header = data.values.shift()
+        this.header = data.values.shift()
         const entries = data.values.map((row, index) => {
-            const obj = header.reduce((obj, key, i) => {
-                this.header.push(key)
+            const obj = this.header.reduce((obj, key, i) => {
                 key = key
                     .replace(/[^a-zA-Z0-9]/g, " ")
                     .replace(/\s+/g, "_")
@@ -259,10 +274,7 @@ class Sheets {
         if (index !== -1) {
             this.values[this.selectedTable].splice(index, 1)
         }
-        const resultsIndex = this.results.findIndex((value) => value.primary_key === row.primary_key)
-        if (resultsIndex !== -1) {
-            this.results.splice(resultsIndex, 1)
-        }
+        this.results = this.values[this.selectedTable]
         await this.updateSheets()
     }
 
@@ -280,7 +292,7 @@ class Sheets {
      * @return {Promise<void>} A promise that resolves when the sheets have been updated.
      */
     async updateSheets() {
-        const values = this.values[this.selectedTable].map((value) => Object.values(value))
+        const values = this.values[this.selectedTable].map((value) => Object.values(value).slice(0, -1))
         values.unshift(this.header)
         await this.client.spreadsheets.values.clear({
             spreadsheetId: this.id,
