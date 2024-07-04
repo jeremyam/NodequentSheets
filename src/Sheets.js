@@ -183,6 +183,7 @@ class Sheets {
                     .replace(/[^a-zA-Z0-9]/g, " ")
                     .replace(/\s+/g, "_")
                     .toLowerCase()
+                row[i] = row[i] || ""
                 obj[key] = row[i].trim()
                 return obj
             }, {})
