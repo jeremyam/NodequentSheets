@@ -456,13 +456,17 @@ class Sheets {
     }
 
     /**
-     * Inserts a new row into the selected table and appends it to the results array.
+     * Inserts or upserts a row into the selected table.
+     * If upsert: true is passed, it will check for an existing row based on the unique key
+     * and update it if found, otherwise insert a new row.
      *
-     * @param {Object} newRow - An object representing the new row to insert, where keys are column names and values are the corresponding data.
-     * @return {Promise<this>} - The current instance with the updated results.
+     * @param {Object} newRow - An object representing the new row or updated data.
+     * @param {Object} options - An object containing the upsert option and unique key.
+     * @param {Boolean} options.upsert - Whether to upsert (update if exists, insert if not). Default is false.
+     * @param {String} options.uniqueKey - The unique key (e.g., "ID") to check for an existing row. Default is "ID".
+     * @return {Promise<this>} - The current instance with the updated or inserted row.
      */
-
-    async insert(newRow) {
+    async insert(newRow, { upsert = false, uniqueKey = "ID" } = {}) {
         try {
             // Ensure a table is selected
             if (!this.selectedTable) {
@@ -472,6 +476,22 @@ class Sheets {
             // Ensure the headers are available to map the object keys to the spreadsheet columns
             if (!this.header || this.header.length === 0) {
                 throw new Error("Header is missing or empty.")
+            }
+
+            // If upsert is true, try to find the existing row by the unique key
+            if (upsert) {
+                const existingIndex = this.results.findIndex((row) => row[uniqueKey] === newRow[uniqueKey])
+
+                if (existingIndex !== -1) {
+                    // Update the existing row
+                    this.results[existingIndex] = {
+                        ...this.results[existingIndex],
+                        ...newRow,
+                    }
+
+                    console.log(`Row with ${uniqueKey} ${newRow[uniqueKey]} updated.`)
+                    return this
+                }
             }
 
             // Convert the newRow object into an array that matches the header order
@@ -497,14 +517,13 @@ class Sheets {
                 primary_key,
             })
 
-            console.log(`Row inserted with primary_key ${primary_key}`)
+            console.log(`New row inserted with primary_key ${primary_key}`)
             return this // Return the current instance for chaining
         } catch (error) {
-            console.error("Error inserting row:", error)
-            throw new Error("Failed to insert row.")
+            console.error("Error inserting/upserting row:", error)
+            throw new Error("Failed to insert/upsert row.")
         }
     }
-
     /**
      * Saves the `results` array to the spreadsheet by updating the values of the selected table.
      *
