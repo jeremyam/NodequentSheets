@@ -38,7 +38,7 @@ class Sheets {
         this.query = ""
         this.selectedTable = ""
 
-        this.useCache = cache
+        this.useCache = cache // Need to implement caching method for data retrieval
         this.header = []
         this.results = []
         this.values = []
