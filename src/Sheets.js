@@ -62,6 +62,116 @@ class Sheets {
             console.error("Failed to authenticate Google Sheets API client:", error)
         }
     }
+    /**
+     * Creates both development and production Google Sheets, sets permissions, and adds the schema as the header row.
+     *
+     * @param {Object} data - An object containing schema and titles for the sheets.
+     * @param {Object} data.schema - The schema object, with keys used as header columns.
+     * @param {string} data.devTitle - Title for the development sheet.
+     * @param {string} data.prodTitle - Title for the production sheet.
+     */
+    async database(data) {
+        try {
+            // Validate the required properties in data
+            if (!data || !data.schema || !data.devTitle || !data.prodTitle) {
+                throw new Error("Invalid data provided. Ensure schema, devTitle, and prodTitle are included.")
+            }
+
+            // Convert schema object to an array for header row
+            const headers = Object.keys(data.schema)
+
+            // Create Development Sheet
+            const devSheet = await this.client.spreadsheets.create({
+                resource: {
+                    properties: {
+                        title: data.devTitle,
+                    },
+                    sheets: [
+                        {
+                            data: [
+                                {
+                                    startRow: 0,
+                                    startColumn: 0,
+                                    rowData: [
+                                        {
+                                            values: headers.map((header) => ({
+                                                userEnteredValue: { stringValue: header },
+                                            })),
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            })
+            this.developmentId = devSheet.data.spreadsheetId
+            const devSheetUrl = `https://docs.google.com/spreadsheets/d/${this.developmentId}/edit`
+
+            // Create Production Sheet
+            const prodSheet = await this.client.spreadsheets.create({
+                resource: {
+                    properties: {
+                        title: data.prodTitle,
+                    },
+                    sheets: [
+                        {
+                            data: [
+                                {
+                                    startRow: 0,
+                                    startColumn: 0,
+                                    rowData: [
+                                        {
+                                            values: headers.map((header) => ({
+                                                userEnteredValue: { stringValue: header },
+                                            })),
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            })
+            this.productionId = prodSheet.data.spreadsheetId
+            const prodSheetUrl = `https://docs.google.com/spreadsheets/d/${this.productionId}/edit`
+
+            // Set permissions to "anyone with link can edit" for both sheets
+            await this._setPermissions(this.developmentId)
+            await this._setPermissions(this.productionId)
+
+            // Log full URLs for both sheets
+            console.log(`Development Sheet created with ID: ${this.developmentId}`)
+            console.log(`Development Sheet URL: ${devSheetUrl}`)
+            console.log(`Production Sheet created with ID: ${this.productionId}`)
+            console.log(`Production Sheet URL: ${prodSheetUrl}`)
+        } catch (error) {
+            console.error("Error creating sheets with schema:", error)
+            throw new Error("Failed to create sheets with schema.")
+        }
+    }
+
+    /**
+     * Sets the Google Sheet permissions to "anyone with link can edit."
+     *
+     * @param {string} sheetId - The ID of the Google Sheet to update permissions for.
+     * @return {Promise<void>}
+     */
+    async _setPermissions(sheetId) {
+        try {
+            await this.client.drive.permissions.create({
+                fileId: sheetId,
+                resource: {
+                    role: "writer",
+                    type: "anyone",
+                },
+            })
+            console.log(`Permissions set to "anyone with the link can edit" for sheet ID: ${sheetId}`)
+        } catch (error) {
+            console.error(`Error setting permissions for sheet ID '${sheetId}':`, error)
+            throw new Error(`Failed to set permissions for sheet ID '${sheetId}'.`)
+        }
+    }
 
     /**
      * Sets the primary column of the sheet based on the provided parameter.
