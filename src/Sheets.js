@@ -325,22 +325,21 @@ class Sheets {
         console.log(`Filtered results: ${this.results.length} entries matched.`)
     }
     /**
-     * Returns an iterator that allows for updating or deleting each row in the `results` array.
+     * Returns each row in the `results` array with attached `update` and `delete` methods.
      * The `update` method allows updating fields of the row, and the `delete` method removes the row from the `results` array.
      *
-     * @return {IterableIterator<any>} An iterator that yields each row of the `results` array with update and delete methods.
+     * @return {Array<any>} An array of each row of the `results` array with update and delete methods.
      */
-    *get() {
-        for (const row of this.results) {
-            yield {
-                ...row,
-                // Method to delete the current row from results
-                delete: () => this._deleteRow(row),
+    get() {
+        return this.results.map((row) => ({
+            ...row,
 
-                // Method to update fields of the current row
-                update: (updatedFields) => this._updateRow(row, updatedFields),
-            }
-        }
+            // Method to delete the current row from results
+            delete: () => this._deleteRow(row),
+
+            // Method to update fields of the current row
+            update: (updatedFields) => this._updateRow(row, updatedFields),
+        }))
     }
 
     /**
