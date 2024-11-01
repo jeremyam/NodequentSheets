@@ -477,8 +477,8 @@ class Sheets {
                 throw new Error("Header is missing or empty.")
             }
 
-            // If upsert is true, try to find the existing row by the unique key
             if (upsert) {
+                // Find the existing row by the unique key
                 const existingIndex = this.results.findIndex((row) => row[uniqueKey] === newRow[uniqueKey])
 
                 if (existingIndex !== -1) {
@@ -487,37 +487,58 @@ class Sheets {
                         ...this.results[existingIndex],
                         ...newRow,
                     }
-
                     console.log(`Row with ${uniqueKey} ${newRow[uniqueKey]} updated.`)
-                    return this
+                } else {
+                    // Add new row if it doesn't exist
+                    this.results.push(newRow)
+                    console.log(`New row added with ${uniqueKey} ${newRow[uniqueKey]}.`)
                 }
+
+                // Remove all existing rows except the header row in the spreadsheet
+                await this.client.spreadsheets.values.clear({
+                    spreadsheetId: this.id,
+                    range: `${this.selectedTable}!A2:Z`, // Clear all rows below the header (assumes header in row 1)
+                })
+
+                // Convert all rows in `this.results` to arrays in header order
+                const allRowsArray = this.results.map((row) => this.header.map((col) => row[col] || ""))
+
+                // Append all rows in `this.results` to the spreadsheet
+                await this.client.spreadsheets.values.append({
+                    spreadsheetId: this.id,
+                    range: this.selectedTable,
+                    valueInputOption: "RAW",
+                    insertDataOption: "INSERT_ROWS",
+                    resource: {
+                        values: allRowsArray, // Insert the arrays representing all rows
+                    },
+                })
+
+                console.log("All rows reinserted with updated data.")
+                return this // Return the current instance for chaining
+            } else {
+                // Non-upsert: Simply add a new row
+                const newRowArray = this.header.map((col) => newRow[col] || "")
+
+                await this.client.spreadsheets.values.append({
+                    spreadsheetId: this.id,
+                    range: this.selectedTable,
+                    valueInputOption: "RAW",
+                    insertDataOption: "INSERT_ROWS",
+                    resource: {
+                        values: [newRowArray],
+                    },
+                })
+
+                const primary_key = this.results.length + 1
+                this.results.push({
+                    ...newRow,
+                    primary_key,
+                })
+
+                console.log(`New row inserted with primary_key ${primary_key}`)
+                return this
             }
-
-            // Convert the newRow object into an array that matches the header order
-            const newRowArray = this.header.map((col) => newRow[col] || "") // Fill missing columns with empty strings
-
-            // Append the new row to the spreadsheet
-            await this.client.spreadsheets.values.append({
-                spreadsheetId: this.id,
-                range: this.selectedTable,
-                valueInputOption: "RAW",
-                insertDataOption: "INSERT_ROWS",
-                resource: {
-                    values: [newRowArray], // Insert the array representing the new row
-                },
-            })
-
-            // Add a primary_key (e.g., based on the number of rows in results + 1)
-            const primary_key = this.results.length + 1
-
-            // Append the new row to the local results array
-            this.results.push({
-                ...newRow,
-                primary_key,
-            })
-
-            console.log(`New row inserted with primary_key ${primary_key}`)
-            return this // Return the current instance for chaining
         } catch (error) {
             console.error("Error inserting/upserting row:", error)
             throw new Error("Failed to insert/upsert row.")
