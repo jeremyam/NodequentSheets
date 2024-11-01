@@ -14,8 +14,8 @@ class Sheets {
         } = {} // Default empty object to prevent errors
     ) {
         // Validate required parameters
-        if (!account || !devId || !prodId) {
-            throw new Error("Service account credentials, developmentId, and productionId are required.")
+        if (!account) {
+            throw new Error("Service account credentials required.")
         }
 
         // Assign constructor parameters
@@ -31,10 +31,11 @@ class Sheets {
         this.primaryColumn = primaryColumn
 
         // Define Google Sheets API URL scopes
-        this.api = ["https://www.googleapis.com/auth/spreadsheets"]
+        this.api = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
         // Initialize other properties
         this.client = null // Will be set when client is authenticated
+        this.drive = null
         this.query = ""
         this.selectedTable = ""
 
@@ -57,13 +58,18 @@ class Sheets {
             // Authenticate the client
             await auth.authorize()
             this.client = google.sheets({ version: "v4", auth }) // Set the sheets client
+
+            // Initialize a separate Drive client
+            this.drive = google.drive({ version: "v3", auth })
             console.log("Google Sheets API client initialized successfully.")
         } catch (error) {
             console.error("Failed to authenticate Google Sheets API client:", error)
         }
     }
+
     /**
-     * Creates both development and production Google Sheets, sets permissions, and adds the schema as the header row.
+     * Creates both development and production Google Sheets, sets permissions, adds the schema as the header row,
+     * and formats columns based on the schema.
      *
      * @param {Object} data - An object containing schema and titles for the sheets.
      * @param {Object} data.schema - The schema object, with keys used as header columns.
@@ -71,21 +77,21 @@ class Sheets {
      * @param {string} data.prodTitle - Title for the production sheet.
      */
     async database(data) {
+        await this._initClient()
         try {
             // Validate the required properties in data
             if (!data || !data.schema || !data.devTitle || !data.prodTitle) {
                 throw new Error("Invalid data provided. Ensure schema, devTitle, and prodTitle are included.")
             }
 
-            // Convert schema object to an array for header row
+            console.log("Converting schema to headers...")
             const headers = Object.keys(data.schema)
+            const columnFormats = Object.values(data.schema)
 
-            // Create Development Sheet
+            console.log("Creating Development Sheet...")
             const devSheet = await this.client.spreadsheets.create({
                 resource: {
-                    properties: {
-                        title: data.devTitle,
-                    },
+                    properties: { title: data.devTitle },
                     sheets: [
                         {
                             data: [
@@ -107,13 +113,12 @@ class Sheets {
             })
             this.developmentId = devSheet.data.spreadsheetId
             const devSheetUrl = `https://docs.google.com/spreadsheets/d/${this.developmentId}/edit`
+            console.log(`Development Sheet created successfully. ID: ${devSheetUrl}`)
 
-            // Create Production Sheet
+            console.log("Creating Production Sheet...")
             const prodSheet = await this.client.spreadsheets.create({
                 resource: {
-                    properties: {
-                        title: data.prodTitle,
-                    },
+                    properties: { title: data.prodTitle },
                     sheets: [
                         {
                             data: [
@@ -135,20 +140,98 @@ class Sheets {
             })
             this.productionId = prodSheet.data.spreadsheetId
             const prodSheetUrl = `https://docs.google.com/spreadsheets/d/${this.productionId}/edit`
+            console.log(`Production Sheet created successfully. ID: ${prodSheetUrl}`)
 
-            // Set permissions to "anyone with link can edit" for both sheets
+            console.log("Setting permissions for Development Sheet...")
             await this._setPermissions(this.developmentId)
+
+            console.log("Setting permissions for Production Sheet...")
             await this._setPermissions(this.productionId)
 
-            // Log full URLs for both sheets
-            console.log(`Development Sheet created with ID: ${this.developmentId}`)
+            console.log("Applying column formatting to Development Sheet...")
+            await this._applyColumnFormatting(this.developmentId, columnFormats)
+
+            console.log("Applying column formatting to Production Sheet...")
+            await this._applyColumnFormatting(this.productionId, columnFormats)
+
             console.log(`Development Sheet URL: ${devSheetUrl}`)
-            console.log(`Production Sheet created with ID: ${this.productionId}`)
             console.log(`Production Sheet URL: ${prodSheetUrl}`)
         } catch (error) {
             console.error("Error creating sheets with schema:", error)
             throw new Error("Failed to create sheets with schema.")
         }
+    }
+
+    /**
+     * Sets the Google Sheet permissions to "anyone with link can edit."
+     *
+     * @param {string} sheetId - The ID of the Google Sheet to update permissions for.
+     */
+    async _setPermissions(sheetId) {
+        try {
+            await this.drive.permissions.create({
+                fileId: sheetId,
+                resource: {
+                    role: "writer",
+                    type: "anyone",
+                },
+            })
+            console.log(`Permissions set to "anyone with the link can edit" for sheet ID: ${sheetId}`)
+        } catch (error) {
+            console.error(`Error setting permissions for sheet ID '${sheetId}':`, error)
+            throw new Error(`Failed to set permissions for sheet ID '${sheetId}'.`)
+        }
+    }
+
+    /**
+     * Applies column formatting based on the schema data types (String, Number).
+     *
+     * @param {string} sheetId - The ID of the Google Sheet.
+     * @param {Array<Function>} columnFormats - An array of schema types (String, Number) for each column.
+     */
+    async _applyColumnFormatting(sheetId, columnFormats) {
+        const requests = columnFormats.map((format, index) => {
+            let numberFormat
+
+            // Determine the formatting based on the type
+            if (format === Number) {
+                numberFormat = {
+                    type: "NUMBER",
+                    pattern: "0.00", // Customize decimal places as needed
+                }
+            } else {
+                // Default to plain text for String
+                numberFormat = {
+                    type: "TEXT",
+                }
+            }
+
+            // Apply formatting to the specified column (excluding header row)
+            return {
+                repeatCell: {
+                    range: {
+                        sheetId: 0, // Sheet ID for the first (or only) sheet in the Google Sheet document
+                        startRowIndex: 1, // Skip the header row
+                        startColumnIndex: index,
+                        endColumnIndex: index + 1,
+                    },
+                    cell: {
+                        userEnteredFormat: {
+                            numberFormat,
+                        },
+                    },
+                    fields: "userEnteredFormat.numberFormat",
+                },
+            }
+        })
+
+        // Send batch update request to apply all formatting at once
+        await this.client.spreadsheets.batchUpdate({
+            spreadsheetId: sheetId,
+            resource: {
+                requests,
+            },
+        })
     }
 
     /**
