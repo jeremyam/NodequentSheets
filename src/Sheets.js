@@ -196,7 +196,7 @@ class Sheets {
 
             // Set the selected table and retrieve its values
             this.selectedTable = table
-            await this.setValues() // Assuming this method fetches the values of the selected sheet
+            await this.setValues() // This method fetches the values of the selected sheet
 
             console.log(`Table '${table}' selected and values retrieved.`)
             return this // Return the current instance for method chaining
