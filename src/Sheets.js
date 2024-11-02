@@ -20,8 +20,8 @@ class Sheets {
 
         // Assign constructor parameters
         this._account = account
-        this.devId = devId
-        this.prodId = prodId
+        this.developmentId = devId
+        this.productionId = prodId
 
         // Mode can be dynamically set (Development or Production)
         this.mode = mode
@@ -43,6 +43,7 @@ class Sheets {
         this.header = []
         this.results = []
         this.values = []
+        this.tables = []
     }
 
     // Private method to initialize the client
@@ -94,7 +95,7 @@ class Sheets {
                     properties: { title: data.devTitle },
                     sheets: [
                         {
-                            properties: { title: "DevSheetTab" },
+                            properties: { title: data.table },
                             data: [
                                 {
                                     startRow: 0,
@@ -124,7 +125,7 @@ class Sheets {
                     properties: { title: data.prodTitle },
                     sheets: [
                         {
-                            properties: { title: "ProdSheetTab" },
+                            properties: { title: data.table },
                             data: [
                                 {
                                     startRow: 0,
@@ -157,6 +158,7 @@ class Sheets {
 
             console.log(`Development Sheet URL: ${devSheetUrl}`)
             console.log(`Production Sheet URL: ${prodSheetUrl}`)
+
             return this
         } catch (error) {
             console.error("Error creating sheets with schema:", error)
@@ -290,13 +292,14 @@ class Sheets {
      * @param {boolean} [options.development=false] - Boolean to indicate whether to use Development mode. Defaults to Production mode if false or not provided.
      * @return {void} - No return value.
      */
-    setMode({ development = false } = {}) {
+    async setMode({ development = false } = {}) {
         try {
             // Set the mode and ID based on the development flag
             this.mode = development ? "Development" : "Production"
-            this.id = development ? this.devId : this.prodId
+            this.id = development ? this.developmentId : this.productionId
 
             console.log(`Mode set to ${this.mode} (${this.id})`)
+            await this.setTables()
         } catch (error) {
             console.error("Error setting mode:", error)
             throw new Error("Failed to set mode. Ensure that devId and prodId are correctly set.")
@@ -349,7 +352,6 @@ class Sheets {
                 spreadsheetId: this.id,
                 fields: "sheets.properties.title",
             })
-
             // Check if sheets data exists
             if (!data || !data.sheets) {
                 throw new Error("No sheets data found in the spreadsheet.")
