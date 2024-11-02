@@ -74,54 +74,63 @@ Table.save()
 
 ```
 
-
 # Creating Records
+
+This example walks you through creating a development and a production sheet, and then inserting a new row into the developement sheet.
+If you already have two sheets set up, then you can combine the previous step with this one. Just set the ids of both sheets, set the mode,
+select the table, and then insert the new row.
+
+Otherwise, if you want to create sheets dynamically and insert new rows, you can do so as follows.
+
 ```javascript
-require("dotenv").config();
-const Sheets = require("../src/Sheets");
-const sleep = require("../src/functions").sleep;
+require("dotenv").config()
+const Sheets = require("../src/Sheets")
+const sleep = require("../src/functions").sleep
 
 const db = new Sheets({
     serviceAccount: require("../storage/credentials.json"),
-});
+})
 
 const init = async () => {
-    const table = "Test Table";
+    const table = "Test Table"
 
     // Step 1: Initialize the Database with Development and Production Sheets
+    // This will create two Google Sheets. The titles are the title of the spreadsheets, and
+    // the "table" is the sheet name.
     await db.database({
-        devTitle: "Test Dev",          // Title of the development sheet
-        prodTitle: "Test Prod",        // Title of the production sheet
-        table: table,                  // Table name in the sheet
+        devTitle: "Test Dev", // Title of the development sheet
+        prodTitle: "Test Prod", // Title of the production sheet
+        table: table, // Table name in the sheet
         schema: {
+            // The schema creates the "header" row and then sets the formate for each column below the header row.
             ID: String,
             Name: String,
             Age: Number,
             Address: String,
         },
-    });
+    })
 
-    // Step 2: Set the Mode to Development
-    db.setMode({ development: true });
+    // Step 2: Set the Mode to Development or Production.
+    db.setMode({ development: true })
 
     // Step 3: Set the Primary Column for Row Uniqueness
-    db.setPrimaryColumn("ID");
+    db.setPrimaryColumn("ID")
 
     // Step 4: Select the Table and Insert a New Row
-    await db.table(table);
+    await db.table(table)
     await db.insert({
         ID: "1",
         Name: "John",
         Age: 30,
         Address: "123 Main St",
-    });
+    })
 
     // Step 5: Save Changes to the Sheet
-    await db.save();
+    await db.save()
 
     // Log the Database Object for Verification
-    console.log(db);
-};
+    console.log(db)
+}
 
-init();
+init()
 ```
