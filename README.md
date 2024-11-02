@@ -71,4 +71,53 @@ for (const row of Table.get()) {
     row.ID = Math.random(15)
 }
 Table.save()
+
+# Creating Records
+require("dotenv").config();
+const Sheets = require("../src/Sheets");
+const sleep = require("../src/functions").sleep;
+
+const db = new Sheets({
+    serviceAccount: require("../storage/credentials.json"),
+});
+
+const init = async () => {
+    const table = "Test Table";
+
+    // Step 1: Initialize the Database with Development and Production Sheets
+    await db.database({
+        devTitle: "Test Dev",          // Title of the development sheet
+        prodTitle: "Test Prod",        // Title of the production sheet
+        table: table,                  // Table name in the sheet
+        schema: {
+            ID: String,
+            Name: String,
+            Age: Number,
+            Address: String,
+        },
+    });
+
+    // Step 2: Set the Mode to Development
+    db.setMode({ development: true });
+
+    // Step 3: Set the Primary Column for Row Uniqueness
+    db.setPrimaryColumn("ID");
+
+    // Step 4: Select the Table and Insert a New Row
+    await db.table(table);
+    await db.insert({
+        ID: "1",
+        Name: "John",
+        Age: 30,
+        Address: "123 Main St",
+    });
+
+    // Step 5: Save Changes to the Sheet
+    await db.save();
+
+    // Log the Database Object for Verification
+    console.log(db);
+};
+
+init();
 ```
