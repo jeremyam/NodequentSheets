@@ -72,7 +72,11 @@ for (const row of Table.get()) {
 }
 Table.save()
 
+```
+
+
 # Creating Records
+```javascript
 require("dotenv").config();
 const Sheets = require("../src/Sheets");
 const sleep = require("../src/functions").sleep;
